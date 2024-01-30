@@ -1,18 +1,30 @@
-ARG GOLANG_VERSION
+# syntax=docker/dockerfile:1
 
-FROM golang:${GOLANG_VERSION}-alpine3.18 as build
+# Build the application from source
+FROM golang:1.21 AS build-stage
 
-WORKDIR /go/src/greeter-server
+WORKDIR /app
 
-COPY main.go .
-RUN go mod init greeter-server && \
-  go mod tidy && \
-  go build -o /greeter-server main.go
+COPY go.mod go.sum ./
+RUN go mod download
 
-FROM gcr.io/distroless/base-debian10
+COPY *.go ./
 
-COPY --from=build /greeter-server /
+RUN CGO_ENABLED=0 GOOS=linux go build -o /greeter-server
+
+# Run the tests in the container
+FROM build-stage AS run-test-stage
+RUN go test -v ./...
+
+# Deploy the application binary into a lean image
+FROM gcr.io/distroless/base-debian11 AS build-release-stage
+
+WORKDIR /
+
+COPY --from=build-stage /greeter-server /greeter-server
 
 EXPOSE 50051
 
-CMD ["/greeter-server"]
+USER nonroot:nonroot
+
+ENTRYPOINT ["/greeter-server"]
