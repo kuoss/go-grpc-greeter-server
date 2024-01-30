@@ -60,13 +60,6 @@ jobs:
       with:
         args: --timeout 5m
 
-  go-test-failfast:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/setup-go@v4
-    - uses: actions/checkout@v3
-    - run: go test ./... -race -failfast
-
   go-licenses:
     runs-on: ubuntu-latest
     steps:
